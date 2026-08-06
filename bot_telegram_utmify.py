@@ -35,102 +35,46 @@ def enviar_telegram(mensagem: str):
     return resp.json()
 
 
-def formatar_valor(valor) -> str:
-    """Formata valor numérico para BRL."""
+def formatar_valor_usd(valor) -> str:
+    """Formata valor numérico para USD."""
     try:
-        return f"R$ {float(valor):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        v = float(valor)
+        if v == int(v):
+            return f"US$ {int(v)}"
+        return f"US$ {v:,.2f}"
     except (ValueError, TypeError):
         return str(valor)
 
 
 def formatar_mensagem(dados: dict) -> str:
     """
-    Monta a mensagem de notificação a partir do payload da UTMify.
-    Adapta-se aos campos presentes — se um campo não existir, é omitido.
+    Monta a mensagem de notificação no estilo BuyGoods.
     """
-    # Campos comuns no webhook da UTMify
-    status = dados.get("status", dados.get("transaction_status", ""))
+    # Campos do webhook UTMify/BuyGoods
+    comissao = dados.get("commission", dados.get("comission", dados.get("COMMISSION_AMOUNT", "")))
+    pedido = dados.get("order_id", dados.get("orderId", dados.get("transaction_id",
+             dados.get("transaction", dados.get("sale_id", dados.get("ORDERID", ""))))))
+    campanha = dados.get("src", dados.get("sck", dados.get("utm_campaign",
+               dados.get("SUBID", dados.get("subid", dados.get("campaign", ""))))))
     produto = dados.get("product_name", dados.get("prod_name", dados.get("product", "")))
-    valor = dados.get("amount", dados.get("value", dados.get("price", "")))
-    comissao = dados.get("commission", dados.get("comission", ""))
-    comprador = dados.get("customer_name", dados.get("buyer_name", dados.get("name", "")))
-    email = dados.get("customer_email", dados.get("buyer_email", dados.get("email", "")))
-    telefone = dados.get("customer_phone", dados.get("phone", ""))
-    pagamento = dados.get("payment_method", dados.get("payment_type", ""))
-    transacao = dados.get("transaction_id", dados.get("transaction", dados.get("sale_id", "")))
-    plataforma = dados.get("platform", dados.get("source", ""))
-    src = dados.get("src", "")
-    sck = dados.get("sck", "")
-    utm_source = dados.get("utm_source", "")
-    utm_medium = dados.get("utm_medium", "")
-    utm_campaign = dados.get("utm_campaign", "")
+    status = dados.get("status", dados.get("transaction_status", ""))
 
-    # Ícone baseado no status
-    icones = {
-        "approved": "✅",
-        "completed": "✅",
-        "paid": "✅",
-        "refunded": "🔄",
-        "canceled": "❌",
-        "cancelled": "❌",
-        "chargeback": "⚠️",
-        "waiting_payment": "⏳",
-        "pending": "⏳",
-    }
-    icone = icones.get(status.lower(), "🔔") if status else "🔔"
+    # Montar mensagem no estilo visual
+    linhas = ["🎉 <b>Nova Venda BuyGoods!</b>", ""]
 
-    # Montar mensagem
-    linhas = [f"{icone} <b>NOVA NOTIFICAÇÃO DE VENDA</b> {icone}", ""]
-
-    if status:
-        linhas.append(f"<b>Status:</b> {status.upper()}")
-    if produto:
-        linhas.append(f"<b>Produto:</b> {produto}")
-    if valor:
-        linhas.append(f"<b>Valor:</b> {formatar_valor(valor)}")
     if comissao:
-        linhas.append(f"<b>Comissão:</b> {formatar_valor(comissao)}")
-    if pagamento:
-        linhas.append(f"<b>Pagamento:</b> {pagamento}")
-    if transacao:
-        linhas.append(f"<b>Transação:</b> <code>{transacao}</code>")
-
-    # Dados do comprador
-    if comprador or email or telefone:
-        linhas.append("")
-        linhas.append("👤 <b>Comprador</b>")
-        if comprador:
-            linhas.append(f"  Nome: {comprador}")
-        if email:
-            linhas.append(f"  Email: {email}")
-        if telefone:
-            linhas.append(f"  Tel: {telefone}")
-
-    # UTMs / rastreamento
-    utms = []
-    if src:
-        utms.append(f"src={src}")
-    if sck:
-        utms.append(f"sck={sck}")
-    if utm_source:
-        utms.append(f"utm_source={utm_source}")
-    if utm_medium:
-        utms.append(f"utm_medium={utm_medium}")
-    if utm_campaign:
-        utms.append(f"utm_campaign={utm_campaign}")
-
-    if utms:
-        linhas.append("")
-        linhas.append("📊 <b>Rastreamento</b>")
-        for u in utms:
-            linhas.append(f"  {u}")
-
-    if plataforma:
-        linhas.append("")
-        linhas.append(f"<b>Plataforma:</b> {plataforma}")
+        linhas.append(f"💵 Comissão: {formatar_valor_usd(comissao)}")
+    if pedido:
+        linhas.append(f"🛒 Pedido: {pedido}")
+    if campanha:
+        linhas.append(f"📈 Campanha: {campanha}")
+    if produto:
+        linhas.append(f"📦 Produto: {produto}")
+    if status:
+        linhas.append(f"📋 Status: {status}")
 
     linhas.append("")
-    linhas.append(f"🕐 {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    linhas.append(f"⏰ {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
 
     return "\n".join(linhas)
 
