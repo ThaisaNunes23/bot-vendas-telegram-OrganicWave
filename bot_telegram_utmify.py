@@ -119,9 +119,17 @@ def health():
 
 @app.route("/test", methods=["GET"])
 def test():
-    """Envia uma mensagem de teste para verificar se o bot está funcionando."""
+    """Envia uma mensagem de teste simulando uma venda."""
     try:
-        enviar_telegram("🧪 <b>Teste!</b>\nSeu bot de vendas está funcionando corretamente.")
+        dados_teste = {
+            "commission": "185",
+            "order_id": "12345",
+            "src": "teste",
+            "product_name": "Produto Exemplo",
+            "status": "approved",
+        }
+        mensagem = formatar_mensagem(dados_teste)
+        enviar_telegram(mensagem)
         return jsonify({"ok": True, "message": "Mensagem de teste enviada!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -130,3 +138,5 @@ def test():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+
